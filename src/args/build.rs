@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Internal representation of the `cargo bootimage` command.
+/// Internal representation of the `cargo grubimage` command.
 pub enum BuildCommand {
     /// A normal invocation (i.e. no `--help` or `--version`)
     Build(BuildArgs),
@@ -23,7 +23,6 @@ impl BuildCommand {
         let mut manifest_path: Option<PathBuf> = None;
         let mut cargo_args = Vec::new();
         let mut quiet = false;
-        let mut grub = false;
         let mut release = false;
         {
             fn set<T>(arg: &mut Option<T>, value: Option<T>) -> Result<()> {
@@ -48,9 +47,6 @@ impl BuildCommand {
                     }
                     "--release" => {
                         release = true;
-                    }
-                    "--grub" => {
-                        grub = true;
                     }
                     "--manifest-path" => {
                         let next = arg_iter.next();
@@ -85,12 +81,11 @@ impl BuildCommand {
             cargo_args,
             quiet,
             release,
-            grub,
         }))
     }
 }
 
-/// Arguments passed to `cargo bootimage`.
+/// Arguments passed to `cargo grubimage`.
 #[derive(Debug, Clone)]
 pub struct BuildArgs {
     /// The manifest path (also present in `cargo_args`).
@@ -101,8 +96,6 @@ pub struct BuildArgs {
     quiet: bool,
     /// Build release version
     release: bool,
-    /// Generates an iso with `grub-mkrescue`
-    grub: bool,
 }
 
 impl BuildArgs {
@@ -124,9 +117,5 @@ impl BuildArgs {
     /// Whether a `--release` flag was passed.
     pub fn release(&self) -> bool {
         self.release
-    }
-    /// Whether a `--grub` flag was passed.
-    pub fn grub(&self) -> bool {
-        self.grub
     }
 }

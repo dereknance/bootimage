@@ -1,34 +1,23 @@
-# bootimage
+# grubimage
 
 Creates a bootable disk image from a Rust OS kernel.
 
 ## Installation
 
 ```
-> cargo install bootimage
+> cargo install grubimage
 ```
 
 ## Usage
 
-First you need to add a dependency on the [`bootloader`](https://github.com/rust-osdev/bootloader) crate:
-
-```toml
-# in your Cargo.toml
-
-[dependencies]
-bootloader = "0.6.4"
-```
-
-**Note**: At least bootloader version `0.5.1` is required since `bootimage 0.7.0`. For earlier bootloader versions, use `bootimage 0.6.6`.
-
-If you want to use a custom bootloader with a different name, you can use Cargo's [rename functionality](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#renaming-dependencies-in-cargotoml).
+The `grub-mkrescue` program must be on somewhere on the `$PATH`.
 
 ### Building
 
 Now you can build the kernel project and create a bootable disk image from it by running:
 
 ```
-cargo bootimage --target your_custom_target.json [other_args]
+cargo grubimage --target your_custom_target.json [other_args]
 ```
 
 The command will invoke `cargo build`, forwarding all passed options. Then it will build the specified bootloader together with the kernel to create a bootable disk image.
@@ -39,11 +28,11 @@ The bootloader crate must support the multiboot2 specification.
 
 ### Running
 
-To run your kernel in QEMU, you can set a `bootimage runner` as a custom runner in a `.cargo/config` file:
+To run your kernel in QEMU, you can set a `grubimage runner` as a custom runner in a `.cargo/config` file:
 
 ```toml
 [target.'cfg(target_os = "none")']
-runner = "bootimage runner"
+runner = "grubimage runner"
 ```
 
 Then you can run your kernel through:
@@ -56,35 +45,35 @@ All arguments after `--` are passed to QEMU. If you want to use a custom run com
 
 ### Testing
 
-The `bootimage` has built-in support for running unit and integration tests of your kernel. For this, you need to use the `custom_tests_framework` feature of Rust as described [here](https://os.phil-opp.com/testing/#custom-test-frameworks).
+The `grubimage` has built-in support for running unit and integration tests of your kernel. For this, you need to use the `custom_tests_framework` feature of Rust as described [here](https://os.phil-opp.com/testing/#custom-test-frameworks).
 
 ## Configuration
 
-Configuration is done through a through a `[package.metadata.bootimage]` table in the `Cargo.toml` of your kernel. The following options are available:
+Configuration is done through a through a `[package.metadata.grubimage]` table in the `Cargo.toml` of your kernel. The following options are available:
 
 ```toml
-[package.metadata.bootimage]
+[package.metadata.grubimage]
 # The cargo subcommand that will be used for building the kernel.
 #
 # For building using the `cargo-xbuild` crate, set this to `xbuild`.
 build-command = ["build"]
-# The command invoked with the created bootimage (the "{}" will be replaced
+# The command invoked with the created grubimage (the "{}" will be replaced
 # with the path to the bootable disk image)
-# Applies to `bootimage run` and `bootimage runner`
+# Applies to `grubimage run` and `grubimage runner`
 run-command = ["qemu-system-x86_64", "-drive", "format=raw,file={}"]
 
 # Additional arguments passed to the run command for non-test executables
-# Applies to `bootimage run` and `bootimage runner`
+# Applies to `grubimage run` and `grubimage runner`
 run-args = []
 
 # Additional arguments passed to the run command for test executables
-# Applies to `bootimage runner`
+# Applies to `grubimage runner`
 test-args = []
 
 # An exit code that should be considered as success for test executables
 test-success-exit-code = {integer}
 
-# The timeout for running a test through `bootimage test` or `bootimage runner` (in seconds)
+# The timeout for running a test through `grubimage test` or `grubimage runner` (in seconds)
 test-timeout = 300
 
 # Whether the `-no-reboot` flag should be passed to test executables
@@ -92,31 +81,11 @@ test-no-reboot = true
 ```
 
 ### Inner workings
-The `bootimage` command first reads the `CARGO_MANIFEST_DIR` environment variable to find out where the `Cargo.toml` of the current project is located.
-Then it parses the `Cargo.toml` file to read bootimage specific configuration data out of it. It then proceeds to build the current cargo project.
-Afterwards it looks if a crate named `bootloader` is defined as dependency. It reads the `Cargo.toml` of the `bootloader` crate and looks for more bootimage specific configuration data. These fields must be available:
-```toml
-[features]
-# Since cargo doesn't support binary-only dependencies, `bootimage` manually turns on
-# a feature named `binary`. This way, bootloader crates can use optional dependencies
-# to improve their compile times when built as library. 
-binary = []
-
-[package.metadata.bootloader]
-# A default target specification can be printed with:
-# rustc +nightly -Z unstable-options --print target-spec-json --target i686-unknown-linux-gnu
-target = "i686-unknown-linux-gnu.json"
-# The sysroot crate that should be built using cargo's build-std feature. If this key is not
-# present `cargo-xbuild` is used for building.
-build-std = "core"
+The `grubimage` command first reads the `CARGO_MANIFEST_DIR` environment variable to find out where the `Cargo.toml` of the current project is located.
+Then it parses the `Cargo.toml` file to read grubimage specific configuration data out of it. It then proceeds to build the current cargo project.
+Afterwards it creates following folder structure in the same directory of your kernel executable:
 ```
-It then proceeds to build the crate with the `--features binary` flag set. The `KERNEL` environment variable is also set to the path of the elf executable of your kernel. Additionally, a `KERNEL_MANIFEST` environment variable is set to point to the `Cargo.toml` of your kernel.
-The bootloader crate defines a linker script and a build.rs, the inner workings of which are described here: https://github.com/rust-osdev/bootloader#build-chain
-The last step is for bootimage to create a bootable image out of it.
-The default behaviour is to `objcopy -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 <bootloader_elf_path> <output_bin_path>`.
-However if the `--grub` flag is set instead it creates following folder structure in the same directory of your kernel executable:
-```
-target/x86_64-os/debug/isofiles
+target/<target>/debug/isofiles
 └── boot
     ├── grub
     │   └── grub.cfg

@@ -44,10 +44,10 @@ pub enum BuildKernelError {
     BuildJsonOutputInvalidJson(json::Error),
 }
 
-/// Represents an error that occurred when creating a bootimage.
+/// Represents an error that occurred when creating a grubimage.
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum CreateBootimageError {
+pub enum CreategrubimageError {
     /// Failed to build the bootloader.
     #[error("An error occured while trying to build the bootloader: {0}")]
     Bootloader(#[from] BootloaderError),

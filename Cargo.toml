@@ -1,10 +1,10 @@
 [package]
-authors = ["Philipp Oppermann <dev@phil-opp.com>"]
+authors = ["Derek Nance <derek@dereknance.com>", "Philipp Oppermann <dev@phil-opp.com>"]
 description = "Tool to create a bootable OS image from a kernel binary."
 license = "MIT/Apache-2.0"
-name = "bootimage"
-version = "0.10.2"
-repository = "https://github.com/rust-osdev/bootimage"
+name = "grubimage"
+version = "0.1.0"
+repository = "https://github.com/dereknance/grubimage"
 edition = "2018"
 
 [dependencies]
