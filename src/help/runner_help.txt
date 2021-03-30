@@ -1,25 +1,25 @@
 Creates a bootable disk image from a Rust kernel and launches it in QEMU
 
 USAGE:
-    bootimage runner EXECUTABLE [ARGS]    Convert and run the given EXECUTABLE
+    grubimage runner EXECUTABLE [ARGS]    Convert and run the given EXECUTABLE
 
-    (for other forms of usage see `bootimage --help`)
+    (for other forms of usage see `grubimage --help`)
 
     This subcommand can be used as a target runner in a `.cargo/config` file:
     ```
         [target.'cfg(target_os = "none")']
-        runner = "bootimage runner"
+        runner = "grubimage runner"
     ```
 
     All ARGS are passed to the run command.
 
 CONFIGURATION:
-    The behavior of `bootimage runner` can be configured through a
-    `[package.metadata.bootimage]` table in the `Cargo.toml`. The
+    The behavior of `grubimage runner` can be configured through a
+    `[package.metadata.grubimage]` table in the `Cargo.toml`. The
     following options are available to configure run behavior:
 
-    [package.metadata.bootimage]
-    # The command invoked with the created bootimage (the "{}" will be replaced
+    [package.metadata.grubimage]
+    # The command invoked with the created grubimage (the "{}" will be replaced
     # with the path to the bootable disk image)
     run-command = ["qemu-system-x86_64", "-drive", "format=raw,file={}"]
     # Additional arguments passed to the run command for non-test executables

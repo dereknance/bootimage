@@ -1,6 +1,6 @@
 //! Provides functions to create a bootable OS image from a kernel binary.
 //!
-//! This crate is mainly built as a binary tool. Run `cargo install bootimage` to install it.
+//! This crate is mainly built as a binary tool. Run `cargo install grubimage` to install it.
 
 #![warn(missing_docs)]
 

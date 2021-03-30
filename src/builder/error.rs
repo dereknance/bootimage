@@ -44,10 +44,10 @@ pub enum BuildKernelError {
     BuildJsonOutputInvalidJson(json::Error),
 }
 
-/// Represents an error that occurred when creating a bootimage.
+/// Represents an error that occurred when creating a grubimage.
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum CreateBootimageError {
+pub enum CreategrubimageError {
     /// Failed to build the bootloader.
     #[error("An error occured while trying to build the bootloader: {0}")]
     Bootloader(#[from] BootloaderError),
@@ -140,6 +140,12 @@ pub enum DiskImageError {
         stderr: Vec<u8>,
     },
 
+    /// The `grub-mkrescue` command failed
+    #[error("Failed to run `grub-mkrescue`: {}", String::from_utf8_lossy(.stderr))]
+    MkResuceFailed {
+        /// The output of `grub-mkrescue` to standard error
+        stderr: Vec<u8>,
+    },
     /// An unexpected I/O error occurred
     #[error("I/O error: {message}:\n{error}")]
     Io {

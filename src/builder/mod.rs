@@ -2,14 +2,12 @@
 
 use crate::config::Config;
 use cargo_metadata::Metadata;
-use error::{BootloaderError, BuildKernelError, BuilderError, CreateBootimageError};
+use error::{BuildKernelError, BuilderError, CreategrubimageError};
 use std::{
     path::{Path, PathBuf},
     process,
 };
 
-/// Provides the build command for the bootloader.
-mod bootloader;
 /// Provides a function to create the bootable disk image.
 mod disk_image;
 /// Contains the errors types returned by the `Builder` methods.
@@ -19,6 +17,24 @@ pub mod error;
 pub struct Builder {
     manifest_path: PathBuf,
     project_metadata: Option<Metadata>,
+}
+
+/// Arguments to create_grubimage
+pub struct Grubimage<'a> {
+    /// Path to kernel Cargo.toml
+    pub kernel_manifest: &'a Path,
+    /// Path to kernel binary
+    pub bin_path: &'a Path,
+    /// Output binary path
+    pub output_bin_path: &'a Path,
+    /// Disable logging
+    pub quiet: bool,
+    /// Use release build
+    pub release: bool,
+    /// Output directory
+    pub iso_dir_path: &'a Path,
+    /// Your project name / binary name
+    pub bin_name: &'a str,
 }
 
 impl Builder {
@@ -79,18 +95,6 @@ impl Builder {
             error: err,
         })?;
         if !output.status.success() {
-            if config.build_command.starts_with(&["xbuild".into()]) {
-                // try executing `cargo xbuild --help` to check whether cargo-xbuild is installed
-                let mut help_command = process::Command::new("cargo");
-                help_command.arg("xbuild").arg("--help");
-                help_command.stdout(process::Stdio::null());
-                help_command.stderr(process::Stdio::null());
-                if let Ok(help_exit_status) = help_command.status() {
-                    if !help_exit_status.success() {
-                        return Err(BuildKernelError::XbuildNotFound);
-                    }
-                }
-            }
             return Err(BuildKernelError::BuildFailed {
                 stderr: output.stderr,
             });
@@ -125,79 +129,18 @@ impl Builder {
         Ok(executables)
     }
 
-    /// Creates a bootimage by combining the given kernel binary with the bootloader.
+    /// Creates a grubimage by combining the given kernel binary with the bootloader.
     ///
     /// Places the resulting bootable disk image at the given `output_bin_path`.
     ///
     /// If the quiet argument is set to true, all output to stdout is suppressed.
-    pub fn create_bootimage(
-        &mut self,
-        kernel_manifest_path: &Path,
-        bin_path: &Path,
-        output_bin_path: &Path,
-        quiet: bool,
-    ) -> Result<(), CreateBootimageError> {
-        let bootloader_build_config = bootloader::BuildConfig::from_metadata(
-            self.project_metadata()?,
-            kernel_manifest_path,
-            bin_path,
+    pub fn create_grubimage(&mut self, args: &Grubimage) -> Result<(), CreategrubimageError> {
+        disk_image::create_iso_image(
+            args.output_bin_path,
+            args.iso_dir_path,
+            args.bin_path,
+            args.bin_name,
         )?;
-
-        // build bootloader
-        if !quiet {
-            println!("Building bootloader");
-        }
-        let mut cmd = bootloader_build_config.build_command();
-        if !quiet {
-            cmd.stdout(process::Stdio::inherit());
-            cmd.stderr(process::Stdio::inherit());
-        }
-        let output = cmd.output().map_err(|err| CreateBootimageError::Io {
-            message: "failed to execute bootloader build command",
-            error: err,
-        })?;
-        if !output.status.success() {
-            return Err(CreateBootimageError::BootloaderBuildFailed {
-                stderr: output.stderr,
-            });
-        }
-
-        // Retrieve binary path
-        let mut cmd = bootloader_build_config.build_command();
-        cmd.arg("--message-format").arg("json");
-        let output = cmd.output().map_err(|err| CreateBootimageError::Io {
-            message: "failed to execute bootloader build command with json output",
-            error: err,
-        })?;
-        if !output.status.success() {
-            return Err(CreateBootimageError::BootloaderBuildFailed {
-                stderr: output.stderr,
-            });
-        }
-        let mut bootloader_elf_path = None;
-        for line in String::from_utf8(output.stdout)
-            .map_err(CreateBootimageError::BuildJsonOutputInvalidUtf8)?
-            .lines()
-        {
-            let mut artifact =
-                json::parse(line).map_err(CreateBootimageError::BuildJsonOutputInvalidJson)?;
-            if let Some(executable) = artifact["executable"].take_string() {
-                if bootloader_elf_path
-                    .replace(PathBuf::from(executable))
-                    .is_some()
-                {
-                    return Err(BootloaderError::BootloaderInvalid(
-                        "bootloader has multiple executables".into(),
-                    )
-                    .into());
-                }
-            }
-        }
-        let bootloader_elf_path = bootloader_elf_path.ok_or_else(|| {
-            BootloaderError::BootloaderInvalid("bootloader has no executable".into())
-        })?;
-
-        disk_image::create_disk_image(&bootloader_elf_path, output_bin_path)?;
 
         Ok(())
     }

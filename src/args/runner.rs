@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
 use std::path::PathBuf;
 
-/// Internal representation of the `bootimage runner` command.
+/// Internal representation of the `grubimage runner` command.
 pub enum RunnerCommand {
-    /// A normal invocation of `bootimage runner` (i.e. no `--help` or `--version`)
+    /// A normal invocation of `grubimage runner` (i.e. no `--help` or `--version`)
     Runner(RunnerArgs),
     /// A command containing `--version`
     Version,
@@ -20,6 +20,7 @@ impl RunnerCommand {
         let mut executable = None;
         let mut quiet = false;
         let mut runner_args = None;
+        let mut release = false;
 
         let mut arg_iter = args.fuse();
 
@@ -45,6 +46,9 @@ impl RunnerCommand {
                 "--quiet" => {
                     quiet = true;
                 }
+                "--release" => {
+                    release = true;
+                }
                 exe => {
                     executable = Some(PathBuf::from(exe));
                 }
@@ -53,20 +57,23 @@ impl RunnerCommand {
 
         Ok(Self::Runner(RunnerArgs {
             executable: executable
-                .ok_or_else(|| anyhow!("excepted path to kernel executable as first argument"))?,
+                .ok_or_else(|| anyhow!("expected path to kernel executable as first argument"))?,
             quiet,
+            release,
             runner_args,
         }))
     }
 }
 
-/// Arguments for the `bootimage runner` command
+/// Arguments for the `grubimage runner` command
 #[derive(Debug, Clone)]
 pub struct RunnerArgs {
     /// Path to the executable binary
     pub executable: PathBuf,
     /// Suppress any output to stdout.
     pub quiet: bool,
+    /// Build release version
+    pub release: bool,
     /// Additional arguments passed to the runner
     pub runner_args: Option<Vec<String>>,
 }

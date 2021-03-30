@@ -1,6 +1,6 @@
-/// Executable for `bootimage runner`.
+/// Executable for `grubimage runner`.
 use anyhow::{anyhow, Context, Result};
-use bootimage::{
+use grubimage::{
     args::{RunnerArgs, RunnerCommand},
     builder::Builder,
     config, help, run,
@@ -17,9 +17,9 @@ pub fn main() -> Result<()> {
     let file_stem = Path::new(&executable_name)
         .file_stem()
         .and_then(|s| s.to_str());
-    if file_stem != Some("bootimage") {
+    if file_stem != Some("grubimage") {
         return Err(anyhow!(
-            "Unexpected executable name: expected `bootimage`, got: `{:?}`",
+            "Unexpected executable name: expected `grubimage`, got: `{:?}`",
             file_stem
         ));
     }
@@ -34,10 +34,10 @@ pub fn main() -> Result<()> {
             return Ok(())
         }
         Some(other) => return Err(anyhow!(
-            "Unsupported subcommand `{:?}`. See `bootimage --help` for an overview of supported subcommands.", other
+            "Unsupported subcommand `{:?}`. See `grubimage --help` for an overview of supported subcommands.", other
         )),
         None => return Err(anyhow!(
-            "Please invoke bootimage with a subcommand. See `bootimage --help` for more information."
+            "Please invoke grubimage with a subcommand. See `grubimage --help` for more information."
         )),
     }
 
@@ -75,6 +75,8 @@ pub(crate) fn runner(args: RunnerArgs) -> Result<i32> {
         .starts_with("rustdoctest");
     let is_test = is_doctest || exe_parent.ends_with("deps");
 
+    let iso_files = exe_parent.join("isofiles");
+
     let bin_name = args
         .executable
         .file_stem()
@@ -82,7 +84,8 @@ pub(crate) fn runner(args: RunnerArgs) -> Result<i32> {
         .to_str()
         .ok_or_else(|| anyhow!("kernel executable file stem is not valid UTF-8"))?;
 
-    let output_bin_path = exe_parent.join(format!("bootimage-{}.bin", bin_name));
+    let output_bin_path = exe_parent.join(format!("grubimage-{}.iso", bin_name));
+
     let executable_canonicalized = args.executable.canonicalize().with_context(|| {
         format!(
             "failed to canonicalize executable path `{}`",
@@ -98,12 +101,17 @@ pub(crate) fn runner(args: RunnerArgs) -> Result<i32> {
         .context("Failed to read CARGO_MANIFEST_DIR environment variable")?;
     let kernel_manifest_path = Path::new(&manifest_dir).join("Cargo.toml");
 
-    builder.create_bootimage(
-        &kernel_manifest_path,
-        &executable_canonicalized,
-        &output_bin_path,
-        args.quiet,
-    )?;
+    let grubimage = grubimage::builder::Grubimage {
+        kernel_manifest: &kernel_manifest_path,
+        bin_path: &executable_canonicalized,
+        output_bin_path: &output_bin_path,
+        quiet: args.quiet,
+        release: args.release,
+        iso_dir_path: &iso_files,
+        bin_name: &bin_name,
+    };
+
+    builder.create_grubimage(&grubimage)?;
 
     let exit_code = run::run(config, args, &output_bin_path, is_test)?;
 

@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Internal representation of the `cargo bootimage` command.
+/// Internal representation of the `cargo grubimage` command.
 pub enum BuildCommand {
     /// A normal invocation (i.e. no `--help` or `--version`)
     Build(BuildArgs),
@@ -23,6 +23,7 @@ impl BuildCommand {
         let mut manifest_path: Option<PathBuf> = None;
         let mut cargo_args = Vec::new();
         let mut quiet = false;
+        let mut release = false;
         {
             fn set<T>(arg: &mut Option<T>, value: Option<T>) -> Result<()> {
                 let previous = mem::replace(arg, value);
@@ -30,7 +31,7 @@ impl BuildCommand {
                     return Err(anyhow!("multiple arguments of same type provided"));
                 }
                 Ok(())
-            };
+            }
 
             let mut arg_iter = args;
             while let Some(arg) = arg_iter.next() {
@@ -43,6 +44,9 @@ impl BuildCommand {
                     }
                     "--quiet" => {
                         quiet = true;
+                    }
+                    "--release" => {
+                        release = true;
                     }
                     "--manifest-path" => {
                         let next = arg_iter.next();
@@ -76,11 +80,12 @@ impl BuildCommand {
             manifest_path,
             cargo_args,
             quiet,
+            release,
         }))
     }
 }
 
-/// Arguments passed to `cargo bootimage`.
+/// Arguments passed to `cargo grubimage`.
 #[derive(Debug, Clone)]
 pub struct BuildArgs {
     /// The manifest path (also present in `cargo_args`).
@@ -89,6 +94,8 @@ pub struct BuildArgs {
     cargo_args: Vec<String>,
     /// Suppress any output to stdout.
     quiet: bool,
+    /// Build release version
+    release: bool,
 }
 
 impl BuildArgs {
@@ -105,5 +112,10 @@ impl BuildArgs {
     /// Whether a `--quiet` flag was passed.
     pub fn quiet(&self) -> bool {
         self.quiet
+    }
+
+    /// Whether a `--release` flag was passed.
+    pub fn release(&self) -> bool {
+        self.release
     }
 }
