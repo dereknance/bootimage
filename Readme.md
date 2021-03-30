@@ -60,7 +60,7 @@ build-command = ["build"]
 # The command invoked with the created grubimage (the "{}" will be replaced
 # with the path to the bootable disk image)
 # Applies to `grubimage run` and `grubimage runner`
-run-command = ["qemu-system-x86_64", "-drive", "format=raw,file={}"]
+run-command = ["qemu-system-i386", "-cdrom", "{}"]
 
 # Additional arguments passed to the run command for non-test executables
 # Applies to `grubimage run` and `grubimage runner`
