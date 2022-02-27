@@ -2,6 +2,15 @@
 
 Creates a bootable disk image from a Rust OS kernel.
 
+## Prerequisites
+
+Before `grubimage` will successfully build and run images, the following packages must be installed (package names come from Debian-based systems):
+
+* `grub-common` (for `grub-mkrescue`)
+* `grub-pc-bin` (only required for EFI-based hosts)
+* `xorriso`
+* `qemu-system-x86`
+
 ## Installation
 
 ```
